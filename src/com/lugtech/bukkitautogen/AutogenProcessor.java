@@ -40,7 +40,7 @@ public class AutogenProcessor extends AbstractProcessor {
 		if (value.length < 1 || value[0] == null || value[0].matches(isSpace)) {
 			if (force) {
 				for (int i = 0; i < depth; i++, file.append("\t"));
-				file.append(key + ": ");
+				file.append(key + ":\n");
 			}
 			return false;
 		}
@@ -66,7 +66,7 @@ public class AutogenProcessor extends AbstractProcessor {
 	@Override
 	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 		
-		if (done) return false;
+		if (done) return true;
 		done = true; //only do this once
 		
 		try {
@@ -104,15 +104,15 @@ public class AutogenProcessor extends AbstractProcessor {
 					PluginInfo info = element.getAnnotation(PluginInfo.class);
 					if (!write(false, 0, "name", info.name())) {
 						msg.printMessage(Diagnostic.Kind.ERROR, "name must be set in @PluginInfo", element);
-						return false;
+						return true;
 					}
 					if (!write(false, 0, "version", info.version())) {
 						msg.printMessage(Diagnostic.Kind.ERROR, "version must be set in @PluginInfo", element);
-						return false;
+						return true;
 					}
 					if (!write(false, 0, "main", info.main())) {
 						msg.printMessage(Diagnostic.Kind.ERROR, "main must be set in @PluginInfo", element);
-						return false;
+						return true;
 					}
 					write(false, 0, "description", info.description());
 					write(false, 0, "load", info.load());
@@ -152,20 +152,20 @@ public class AutogenProcessor extends AbstractProcessor {
 					
 					//the usage is valid
 					CommandInfo info = element.getAnnotation(CommandInfo.class);
-					
 					if (info.command().matches(hasSpace)) { //contains whitespace
-						msg.printMessage(Diagnostic.Kind.ERROR, "Command may not contain whitespace", element);
+						msg.printMessage(Diagnostic.Kind.ERROR, "Command may not contain whitespace in @CommandInfo", element);
 						continue; //go on to next command / ignore this one
 					}
-					if (!write(false, 1, info.command())) {
+					if (info.command().matches(isSpace)) { //sorta redundant
 						msg.printMessage(Diagnostic.Kind.ERROR, "Command must be set in @CommandInfo", element);
 						continue; //go on to next command / ignore this one
 					}
+					write(true, 1, info.command());
 					
 					List<String> aliases = new ArrayList<String>(0);
 					for (int i = 0; i < info.aliases().length; i++) {
 						if (info.aliases()[i].matches(hasSpace)) { //contains whitespace
-							msg.printMessage(Diagnostic.Kind.ERROR, "Alias string may not contain whitespace", element);
+							msg.printMessage(Diagnostic.Kind.ERROR, "Alias string may not contain whitespace in @CommandInfo", element);
 							continue; //go on to next alias
 						}
 						aliases.add(info.aliases()[i]);
@@ -175,6 +175,23 @@ public class AutogenProcessor extends AbstractProcessor {
 					write(false, 2, "permissions", info.permission());
 					write(false, 2, "permission-message", info.permission_message());
 					write(false, 2, "usage", info.usage());
+				}
+			}
+			
+			write(true, 0, "permissions"); //forced to write
+			Set<? extends Element> missions = roundEnv.getElementsAnnotatedWith(PermissionInfo.class);
+			for (Element element : missions) {
+				if (element instanceof TypeElement) {
+					PermissionInfo info = element.getAnnotation(PermissionInfo.class);
+					
+					if (info.permission().matches(isSpace)) { //sorta redundant
+						msg.printMessage(Diagnostic.Kind.ERROR, "Command must be set in @CommandInfo", element);
+						continue; //go on to next command / ignore this one
+					}
+					write(true, 1, info.permission());
+					write(false, 2, "default", info.default_value());
+					write(false, 2, "description", info.description());
+					write(false, 2, "childern", info.children());
 				}
 			}
 			
@@ -201,6 +218,6 @@ public class AutogenProcessor extends AbstractProcessor {
 			} catch (IOException ioe) { } //we're sunk
 		}
 		
-		return false;
+		return true;
 	}
 }

@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 @Documented
 @Inherited
 @Target(ElementType.TYPE) //target classes
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.SOURCE) //remove at compile
 public @interface PluginInfo {
 	String name();
 	String version();

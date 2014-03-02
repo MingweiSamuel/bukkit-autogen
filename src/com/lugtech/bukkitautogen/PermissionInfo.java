@@ -11,11 +11,9 @@ import java.lang.annotation.Target;
 @Inherited
 @Target(ElementType.TYPE) //target classes
 @Retention(RetentionPolicy.SOURCE) //remove at compile
-public @interface CommandInfo {
-	String command();
-	String description() default "";
-	String[] aliases() default "";
+public @interface PermissionInfo {
 	String permission() default "";
-	String permission_message() default "";
-	String usage() default "";
+	String description() default "";
+	String default_value() default "true";
+	String[] children() default "";
 }
