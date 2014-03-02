@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 @Documented
 @Inherited
 @Target(ElementType.TYPE) //target classes
-@Retention(RetentionPolicy.SOURCE) //removed at runtime
+@Retention(RetentionPolicy.RUNTIME) //keep
 public @interface CommandInfo {
 	String command();
 	String description();

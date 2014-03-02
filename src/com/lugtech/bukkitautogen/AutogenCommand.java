@@ -1,6 +1,5 @@
 package com.lugtech.bukkitautogen;
 
-
 @CommandInfo(
 		command = "",
 		description = "",
@@ -8,6 +7,6 @@ package com.lugtech.bukkitautogen;
 		permission = "",
 		usage = ""
 )
-public interface AutoCommandExecutor extends org.bukkit.command.CommandExecutor {
+public interface AutogenCommand {
 	
 }
