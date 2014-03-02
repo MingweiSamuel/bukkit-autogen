@@ -11,11 +11,19 @@ import java.lang.annotation.Target;
 @Inherited
 @Target(ElementType.TYPE) //target classes
 @Retention(RetentionPolicy.CLASS)
-public @interface CommandInfo {
-	String command();
+public @interface PluginInfo {
+	String name();
+	String version();
 	String description() default "";
-	String[] aliases() default "";
-	String permission() default "";
-	String permission_message() default "";
-	String usage() default "";
+	String load() default "";
+	String author() default "";
+	String[] authors() default "";
+	String website() default "";
+	String main();
+	String database() default "";
+	String depend() default "";
+	String prefix() default "";
+	String softdepend() default "";
+	String loadbefore() default "";
+	//permissions & commands included separately
 }
