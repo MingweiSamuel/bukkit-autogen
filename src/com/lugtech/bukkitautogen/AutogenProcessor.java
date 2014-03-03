@@ -1,6 +1,7 @@
 package com.lugtech.bukkitautogen;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -21,45 +22,14 @@ import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
+import com.lugtech.bukkitautogen.yaml.Yaml;
+import com.lugtech.bukkitautogen.yaml.YamlNode;
+
 @SupportedAnnotationTypes("com.lugtech.bukkitautogen.*")
 public class AutogenProcessor extends AbstractProcessor {
 	
 	private static final String hasSpace = "(?s)(.*)(\\s+)(.*)";
 	private static final String isSpace = "(\\s*)";
-	
-	private StringBuilder file = new StringBuilder();
-	
-	/**
-	 * Write to the plugin.yml
-	 * @param depth Depth (number of tabs) to use with the key
-	 * @param key Key name
-	 * @param value Values of the key
-	 * @return True if value was not empty
-	 */
-	private boolean write(boolean force, int depth, String key, String... value) {
-		if (value.length < 1 || value[0] == null || value[0].matches(isSpace)) {
-			if (force) {
-				for (int i = 0; i < depth; i++, file.append("\t"));
-				file.append(key + ":\n");
-			}
-			return false;
-		}
-		for (int i = 0; i < depth; i++, file.append("\t"));
-		file.append(key + ": ");
-		if (value.length == 1) {
-			file.append("'" + value[0] + "'\n");
-			return true;
-		}
-		for (int i = 0; i < value.length; i++) {
-			if (value[i] == null || value[i].matches(isSpace))
-				continue;
-			file.append("\n");
-			for (int j = 0; j < depth + 1; j++, file.append("\t"));
-			file.append("- '" + value[i] + "'");
-		}
-		file.append("\n");
-		return true;
-	}
 	
 	private boolean done = false;
 	
@@ -69,9 +39,22 @@ public class AutogenProcessor extends AbstractProcessor {
 		if (done) return true;
 		done = true; //only do this once
 		
+		// GENERAL //
 		try {
 			
-			file.append("# This file was automatically generated. Any changes will likely be rewritten.\n");
+			
+			Filer filer = super.processingEnv.getFiler();
+			FileObject obj = filer.getResource(StandardLocation.SOURCE_OUTPUT, "", "../plugin.yml");
+			Yaml yaml = new Yaml();
+			boolean write = true;
+			
+			try { yaml = new Yaml(obj.openInputStream()); }
+			catch (Exception e) { write = false; }
+			
+			YamlNode root = yaml.getRootNode();
+			
+			
+			
 			
 			Messager msg = super.processingEnv.getMessager();
 			Types typeUtil = super.processingEnv.getTypeUtils();
@@ -102,33 +85,46 @@ public class AutogenProcessor extends AbstractProcessor {
 					
 					//usage is valid
 					PluginInfo info = element.getAnnotation(PluginInfo.class);
-					if (!write(false, 0, "name", info.name())) {
-						msg.printMessage(Diagnostic.Kind.ERROR, "name must be set in @PluginInfo", element);
+					
+					if (info.name().matches(isSpace)) {
+						msg.printMessage(Diagnostic.Kind.ERROR, "Name must be set in @PluginInfo", element);
 						return true;
 					}
-					if (!write(false, 0, "version", info.version())) {
-						msg.printMessage(Diagnostic.Kind.ERROR, "version must be set in @PluginInfo", element);
+					root.addValue("name", info.name());
+					
+					if (info.version().matches(isSpace)) {
+						msg.printMessage(Diagnostic.Kind.ERROR, "Version must be set in @PluginInfo", element);
 						return true;
 					}
-					if (!write(false, 0, "main", info.main())) {
-						msg.printMessage(Diagnostic.Kind.ERROR, "main must be set in @PluginInfo", element);
+					root.addValue("version", info.version());
+					
+					if (info.main().matches(isSpace)) {
+						msg.printMessage(Diagnostic.Kind.ERROR, "Main must be set in @PluginInfo", element);
 						return true;
 					}
-					write(false, 0, "description", info.description());
-					write(false, 0, "load", info.load());
-					write(false, 0, "author", info.author());
-					write(false, 0, "authors", info.authors());
-					write(false, 0, "website", info.website());
-					write(false, 0, "database", info.database());
-					write(false, 0, "depend", info.depend());
-					write(false, 0, "prefix", info.prefix());
-					write(false, 0, "softdepend", info.softdepend());
-					write(false, 0, "loadbefore", info.loadbefore());
+					if (info.main().matches(hasSpace)) {
+						msg.printMessage(Diagnostic.Kind.ERROR, "Main main not contain whitespace in @PluginInfo", element);
+						return true;
+					}
+					root.addValue("main", info.main());
+					
+					root.addValue("description", info.description());
+					root.addValue("load", info.load());
+					root.addValue("author", info.author());
+					root.addValue("authors", info.authors());
+					root.addValue("website", info.website());
+					root.addValue("database", info.database());
+					root.addValue("depend", info.depend());
+					root.addValue("prefix", info.prefix());
+					root.addValue("softdepend", info.softdepend());
+					root.addValue("loadbefore", info.loadbefore());
 				}
 			}
 			//}
 			
-			write(true, 0, "commands"); //force this to write
+			// COMMANDS //
+			root.addNode("commands");
+			YamlNode cmds = root.getChildren().get("commands");
 			Set<? extends Element> commands = roundEnv.getElementsAnnotatedWith(CommandInfo.class);
 			for (Element element : commands) {
 				if (element instanceof TypeElement) {
@@ -160,7 +156,8 @@ public class AutogenProcessor extends AbstractProcessor {
 						msg.printMessage(Diagnostic.Kind.ERROR, "Command must be set in @CommandInfo", element);
 						continue; //go on to next command / ignore this one
 					}
-					write(true, 1, info.command());
+					cmds.addNode(info.command());
+					YamlNode cmd = cmds.getChildren().get(info.command());
 					
 					List<String> aliases = new ArrayList<String>(0);
 					for (int i = 0; i < info.aliases().length; i++) {
@@ -170,15 +167,17 @@ public class AutogenProcessor extends AbstractProcessor {
 						}
 						aliases.add(info.aliases()[i]);
 					}
-					write(false, 2, "aliases", aliases.toArray(new String[aliases.size()]));
-					write(false, 2, "description", info.description());
-					write(false, 2, "permissions", info.permission());
-					write(false, 2, "permission-message", info.permission_message());
-					write(false, 2, "usage", info.usage());
+					cmd.addValue("aliases", aliases.toArray(new String[aliases.size()]));
+					cmd.addValue("description", info.description());
+					cmd.addValue("permissions", info.permission());
+					cmd.addValue("permission-message", info.permission_message());
+					cmd.addValue("usage", info.usage());
 				}
 			}
 			
-			write(true, 0, "permissions"); //forced to write
+			// PERMISSIONS //
+			root.addNode("permissions");
+			YamlNode permits = root.getChildren().get("permissions");
 			Set<? extends Element> missions = roundEnv.getElementsAnnotatedWith(PermissionInfo.class);
 			for (Element element : missions) {
 				if (element instanceof TypeElement) {
@@ -188,19 +187,20 @@ public class AutogenProcessor extends AbstractProcessor {
 						msg.printMessage(Diagnostic.Kind.ERROR, "Command must be set in @CommandInfo", element);
 						continue; //go on to next command / ignore this one
 					}
-					write(true, 1, info.permission());
-					write(false, 2, "default", info.default_value());
-					write(false, 2, "description", info.description());
-					write(false, 2, "childern", info.children());
+					
+					permits.addNode(info.permission());
+					YamlNode permit = permits.getChildren().get(info.permission());
+					permit.addValue("default", info.default_value());
+					permit.addValue("description", info.description());
+					permit.addValue("children", info.children());
 				}
 			}
 			
 			try {
-				Filer filer = super.processingEnv.getFiler();
-				FileObject fileObj = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "../plugin2.yml");
-				PrintWriter writer = new PrintWriter(fileObj.openOutputStream()); //open the generated file
-				writer.append(file); //write the strings
-				writer.close();
+				if (write) {
+					FileObject fileObj = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "../plugin.yml");
+					yaml.save(new PrintStream(fileObj.openOutputStream()));
+				}
 			} catch (IOException ioe) {
 				msg.printMessage(Diagnostic.Kind.WARNING, "Autogen failed to access to plugin.yml: " + ioe.getLocalizedMessage());
 			}

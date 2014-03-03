@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE) //target classes
 @Retention(RetentionPolicy.SOURCE) //remove at compile
 public @interface PermissionInfo {
-	String permission() default "";
+	String permission();
 	String description() default "";
 	String default_value() default "true";
 	String[] children() default "";
