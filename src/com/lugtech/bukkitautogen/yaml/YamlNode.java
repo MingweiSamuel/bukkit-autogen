@@ -17,11 +17,11 @@ public class YamlNode {
 	private final int level;
 	
 	private final String localRegexLn;
-	private static final String nodeRegexLn = "(\t*)(\\w+)(:)(\\s*)";
-	private static final String valueRegexLn = "(\t*)([\\w|-]+)(:)(\\s)(\\[?)(')(.*)(')(\\]?)";
+	private static final String nodeRegexLn = "(( )*)(\\w+)(:)(\\s*)";
+	private static final String valueRegexLn = "(( )*)([\\w|-]+)(:)(\\s)(\\[?)(')(.*)(')(\\]?)";
 	private static final String keyRegex = "(\\b)(\\w*)(:)";
 	private static final String valueRegex = "(')(.*?)(')";
-	private static final String commentRegex = "(\t*)(#)(.*)";
+	private static final String commentRegex = "(( )*)(#)(.*)";
 	private static final String spaceRegex = "(\\s*)";
 	
 	private List<String> orphans = new ArrayList<String>(0);
@@ -39,7 +39,7 @@ public class YamlNode {
 		while (scanner.hasNextLine() && grow(scanner, scanner.nextLine()));
 	}
 	public YamlNode(int level) {
-		this.localRegexLn = "(\t{" + level + "})(\\w+)(:)(.*)";
+		this.localRegexLn = "(( ){" + level + "})(\\w+)(:)(.*)";
 		this.values = null;
 		this.level = level;
 	}
@@ -61,9 +61,6 @@ public class YamlNode {
 		if (line == null || line.matches(commentRegex) || line.matches(spaceRegex)) //null / comment / whitespace line
 			return true;
 		
-		
-		if (line.equals("	end:"))
-			log("! end line here");
 		if (line.matches(localRegexLn)) { //if it's a valid line
 			YamlNode node;
 			if (line.matches(valueRegexLn)) { //if its a value
@@ -137,7 +134,7 @@ public class YamlNode {
 		if (!children.isEmpty()) {
 			out.print("\n");
 			for (String nodeName : children.keySet()) {
-				for (int i = 0; i < level; i++, out.print("\t"));
+				for (int i = 0; i < level; i++, out.print(" ")); //space indent
 				out.print(nodeName + ": ");
 				children.get(nodeName).write(out);
 			}

@@ -48,8 +48,10 @@ public class AutogenProcessor extends AbstractProcessor {
 			Yaml yaml = new Yaml();
 			boolean write = true;
 			
-			try { yaml = new Yaml(obj.openInputStream()); }
-			catch (Exception e) { write = false; }
+			//try { 
+				yaml = new Yaml(obj.openInputStream()); 
+			//	}
+			//catch (Exception e) { write = false; }
 			
 			YamlNode root = yaml.getRootNode();
 			
@@ -123,8 +125,10 @@ public class AutogenProcessor extends AbstractProcessor {
 			//}
 			
 			// COMMANDS //
-			root.addNode("commands");
+			if (!root.getChildren().containsKey("commands"))
+				root.addNode("commands");
 			YamlNode cmds = root.getChildren().get("commands");
+			
 			Set<? extends Element> commands = roundEnv.getElementsAnnotatedWith(CommandInfo.class);
 			for (Element element : commands) {
 				if (element instanceof TypeElement) {
@@ -176,8 +180,10 @@ public class AutogenProcessor extends AbstractProcessor {
 			}
 			
 			// PERMISSIONS //
-			root.addNode("permissions");
+			if (!root.getChildren().containsKey("permissions"))
+				root.addNode("permissions");
 			YamlNode permits = root.getChildren().get("permissions");
+			
 			Set<? extends Element> missions = roundEnv.getElementsAnnotatedWith(PermissionInfo.class);
 			for (Element element : missions) {
 				if (element instanceof TypeElement) {
