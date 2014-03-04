@@ -17,11 +17,11 @@ public class YamlNode {
 	private final int level;
 	
 	private final String localRegexLn;
-	private static final String nodeRegexLn = "(( )*)(\\w+)(:)(\\s*)";
-	private static final String valueRegexLn = "(( )*)([\\w|-]+)(:)(\\s)(\\[?)(')(.*)(')(\\]?)";
+	private static final String nodeRegexLn = "(( )*)([\\w\\-\\.]+)(:)(\\s*)";
+	private static final String valueRegexLn = "(( )*)([\\w\\-\\.]+)(:)(\\s)(\\[?)(')(.*)(')(\\]?)";
 	private static final String commentRegexLn = "(( )*)(#)(.*)";
 	
-	private static final String keyRegex = "(\\b)(\\w*)(:)";
+	private static final String keyRegex = "(\\b)([\\w\\-\\.]+)(:)";
 	private static final String valueRegex = "(')(.*?)(')";
 	private static final String spaceRegex = "(\\s*)";
 	
@@ -40,7 +40,7 @@ public class YamlNode {
 		while (scanner.hasNextLine() && grow(scanner, scanner.nextLine()));
 	}
 	public YamlNode(int level) {
-		this.localRegexLn = "(( ){" + level + "})(\\w+)(:)(.*)";
+		this.localRegexLn = "(( ){" + level + "})([\\w\\-\\.]+)(:)(.*)";
 		this.values = null;
 		this.level = level;
 	}
@@ -68,21 +68,21 @@ public class YamlNode {
 				Yaml.log(level, "VALUE: " + parseName(line));
 				node = new YamlNode(level + 1, parseValues(line));
 			}
-			else { //if its a node
+			else { //if its a node (goes on to the next line in the new YamlNode)
 				Yaml.log(level, "NODE: " + parseName(line));
 				node = new YamlNode(level + 1, scanner);
 			}
 			
 			for (String orphan : node.getOrphans()) {
 				Yaml.log(level, "GROWING ORPHAN: " + parseName(orphan));
-				grow(scanner, orphan); //grow last amputated branch if any
+				if (!grow(scanner, orphan)) //grow last amputated branch if any / return false if failed to grow: means its at least one more level down
+					return false;
 			}
 			
 			children.put(parseName(line), node); //add it to children
 			return true;
 		}
 		else { //invalid line
-			Yaml.log(level, "INVALID: " + parseName(line));
 			if (line.matches(nodeRegexLn)) { //if it's a different level
 				Yaml.log(level, "ORPHAN NODE: " + parseName(line));
 				orphans.add(line);
@@ -91,6 +91,8 @@ public class YamlNode {
 				Yaml.log(level, "ORPHAN VALUE: " + parseName(line));
 				orphans.add(line);
 			}
+			else
+				Yaml.log(level, "INVALID LINE: " + parseName(line));
 			return false;
 		}
 	}
@@ -140,15 +142,15 @@ public class YamlNode {
 	
 	void write(PrintStream out) {
 		int infos = hasInfo();
-		if (infos == 0) //don't do anything if this is empty
-			return;
+//		if (infos == 0) //don't do anything if this is empty / this should not happen b/c it should be caught in the previous node
+//			return;
 		if (values == null) { //node
 			out.print("\n");
 			for (String nodeName : children.keySet()) {
 				if (children.get(nodeName).hasInfo() == 0) //skip this node if it's empty
 					continue;
 				for (int i = 0; i < level; i++, out.print(" ")); //space indent
-				Yaml.log(level, "WRITING NODE: " + nodeName);
+				Yaml.log(level, "WRITING ELEMENT: " + nodeName);
 				out.print(nodeName + ": ");
 				children.get(nodeName).write(out);
 			}
@@ -158,7 +160,7 @@ public class YamlNode {
 			for (String value : values) {
 				if (value == null || value.matches(spaceRegex)) //we need to find the valid value
 					continue;
-				Yaml.log(level, "WRITING SINGLE VALUE: " + value);
+				Yaml.log(level, "WRITING VALUE: " + value);
 				out.print("'" + value + "'\n");
 				break;
 			}
@@ -171,7 +173,7 @@ public class YamlNode {
 			if (values[i] == null || values[i].matches(spaceRegex))
 				continue; //skip if empty
 			count++;
-			Yaml.log(level, "WRITING VALUE: " + values[i]);
+			Yaml.log(level, "WRITING SUB-VALUE: " + values[i]);
 			out.print(values[i] + "'");
 			if (count != infos) //not last
 				out.print(", '");

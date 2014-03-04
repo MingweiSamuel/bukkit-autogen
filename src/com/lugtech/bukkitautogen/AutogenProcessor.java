@@ -32,18 +32,19 @@ public class AutogenProcessor extends AbstractProcessor {
 	private static final String hasSpace = "(?s)(.*)(\\s+)(.*)";
 	private static final String isSpace = "(\\s*)";
 	
-	//private boolean done = false;
+	boolean done = false;
 	
 	@Override
 	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 		
-		//if (done) return true;
-		//done = true; //only do this once
+		if (done) return true;
+		done = true;
 		
 		try {
 			// SETUP //
 			Filer filer = super.processingEnv.getFiler();
 			
+			//logging
 			Yaml.LOG = true;
 			Scanner prelog = new Scanner(filer.getResource(StandardLocation.SOURCE_OUTPUT, "", "../autogen.aglog").openInputStream());
 			PrintStream log = new PrintStream(filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "../autogen.aglog").openOutputStream());
@@ -57,7 +58,7 @@ public class AutogenProcessor extends AbstractProcessor {
 			Yaml yaml = new Yaml(obj.openInputStream()); 
 			YamlNode root = yaml.getRootNode();
 			
-			
+			root.getChildren().get("commands").getChildren().get("admintoggle");
 			
 			
 			Messager msg = super.processingEnv.getMessager();
@@ -124,7 +125,6 @@ public class AutogenProcessor extends AbstractProcessor {
 					root.addValue("loadbefore", info.loadbefore());
 				}
 			}
-			//}
 			
 			// COMMANDS //
 			if (!root.getChildren().containsKey("commands"))
@@ -175,7 +175,7 @@ public class AutogenProcessor extends AbstractProcessor {
 					}
 					cmd.addValue("aliases", aliases.toArray(new String[aliases.size()]));
 					cmd.addValue("description", info.description());
-					cmd.addValue("permissions", info.permission());
+					cmd.addValue("permission", info.permission());
 					cmd.addValue("permission-message", info.permission_message());
 					cmd.addValue("usage", info.usage());
 				}
@@ -188,20 +188,18 @@ public class AutogenProcessor extends AbstractProcessor {
 			
 			Set<? extends Element> missions = roundEnv.getElementsAnnotatedWith(PermissionInfo.class);
 			for (Element element : missions) {
-				if (element instanceof TypeElement) {
-					PermissionInfo info = element.getAnnotation(PermissionInfo.class);
-					
-					if (info.permission().matches(isSpace)) { //sorta redundant
-						msg.printMessage(Diagnostic.Kind.ERROR, "Command must be set in @CommandInfo", element);
-						continue; //go on to next command / ignore this one
-					}
-					
-					permits.addNode(info.permission());
-					YamlNode permit = permits.getChildren().get(info.permission());
-					permit.addValue("default", info.default_value());
-					permit.addValue("description", info.description());
-					permit.addValue("children", info.children());
+				PermissionInfo info = element.getAnnotation(PermissionInfo.class);
+				
+				if (info.permission().matches(isSpace)) { //sorta redundant
+					msg.printMessage(Diagnostic.Kind.ERROR, "Command must be set in @CommandInfo", element);
+					continue; //go on to next command / ignore this one
 				}
+				
+				permits.addNode(info.permission());
+				YamlNode permit = permits.getChildren().get(info.permission());
+				permit.addValue("default", info.default_value());
+				permit.addValue("description", info.description());
+				permit.addValue("children", info.children());
 			}
 			
 			try {
