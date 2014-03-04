@@ -19,9 +19,10 @@ public class YamlNode {
 	private final String localRegexLn;
 	private static final String nodeRegexLn = "(( )*)(\\w+)(:)(\\s*)";
 	private static final String valueRegexLn = "(( )*)([\\w|-]+)(:)(\\s)(\\[?)(')(.*)(')(\\]?)";
+	private static final String commentRegexLn = "(( )*)(#)(.*)";
+	
 	private static final String keyRegex = "(\\b)(\\w*)(:)";
 	private static final String valueRegex = "(')(.*?)(')";
-	private static final String commentRegex = "(( )*)(#)(.*)";
 	private static final String spaceRegex = "(\\s*)";
 	
 	private List<String> orphans = new ArrayList<String>(0);
@@ -58,22 +59,22 @@ public class YamlNode {
 	}
 	
 	private boolean grow(Scanner scanner, String line) {
-		if (line == null || line.matches(commentRegex) || line.matches(spaceRegex)) //null / comment / whitespace line
+		if (line == null || line.matches(commentRegexLn) || line.matches(spaceRegex)) //null / comment / whitespace line
 			return true;
 		
 		if (line.matches(localRegexLn)) { //if it's a valid line
 			YamlNode node;
 			if (line.matches(valueRegexLn)) { //if its a value
-				log("Level " + level + ": VALUE: " + parseName(line));
+				Yaml.log(level, "VALUE: " + parseName(line));
 				node = new YamlNode(level + 1, parseValues(line));
 			}
 			else { //if its a node
-				log("Level " + level + ": NODE: " + parseName(line));
+				Yaml.log(level, "NODE: " + parseName(line));
 				node = new YamlNode(level + 1, scanner);
 			}
 			
 			for (String orphan : node.getOrphans()) {
-				log("         GROWING ORPHAN: " + parseName(orphan));
+				Yaml.log(level, "GROWING ORPHAN: " + parseName(orphan));
 				grow(scanner, orphan); //grow last amputated branch if any
 			}
 			
@@ -81,22 +82,17 @@ public class YamlNode {
 			return true;
 		}
 		else { //invalid line
-			log("Level " + level + ": INVALID: " + parseName(line));
+			Yaml.log(level, "INVALID: " + parseName(line));
 			if (line.matches(nodeRegexLn)) { //if it's a different level
-				log("         ORPHAN NODE: " + parseName(line));
+				Yaml.log(level, "ORPHAN NODE: " + parseName(line));
 				orphans.add(line);
 			}
 			else if (line.matches(valueRegexLn)) {
-				log("         ORPHAN VALUE: " + parseName(line));
+				Yaml.log(level, "ORPHAN VALUE: " + parseName(line));
 				orphans.add(line);
 			}
 			return false;
 		}
-	}
-	
-	private void log(String str) {
-		if (Yaml.log)
-			System.out.println(str);
 	}
 	
 	private String[] getOrphans() {
@@ -115,6 +111,18 @@ public class YamlNode {
 		return level;
 	}
 	
+	int hasInfo() {
+		if (values == null) {
+			return children.size();
+		}
+		int infos = 0;
+		for (String value : values) {
+			if (value != null && !value.matches(spaceRegex))
+				infos++;
+		}
+		return infos;
+	}
+	
 	public static String parseName(String line) { //gets string between tabs and colon - 1
 		Matcher name = Pattern.compile(keyRegex).matcher(line);
 		name.find();
@@ -131,22 +139,43 @@ public class YamlNode {
 	}
 	
 	void write(PrintStream out) {
-		if (!children.isEmpty()) {
+		int infos = hasInfo();
+		if (infos == 0) //don't do anything if this is empty
+			return;
+		if (values == null) { //node
 			out.print("\n");
 			for (String nodeName : children.keySet()) {
+				if (children.get(nodeName).hasInfo() == 0) //skip this node if it's empty
+					continue;
 				for (int i = 0; i < level; i++, out.print(" ")); //space indent
+				Yaml.log(level, "WRITING NODE: " + nodeName);
 				out.print(nodeName + ": ");
 				children.get(nodeName).write(out);
 			}
-		}
-		else if (values != null) {
-			out.print("['");
-			for (int i = 0; i < values.length; i++) {
-				if (i != 0) //not first
-					out.print(", '");
-				out.print(values[i] + "'");
+			return;
+		} //single value
+		if (infos == 1) { //has one valid info
+			for (String value : values) {
+				if (value == null || value.matches(spaceRegex)) //we need to find the valid value
+					continue;
+				Yaml.log(level, "WRITING SINGLE VALUE: " + value);
+				out.print("'" + value + "'\n");
+				break;
 			}
-			out.print("]\n");
+			return;
+		} //multi-value
+		Yaml.log(level, "WRITING MULTI-VALUE");
+		out.print("['");
+		int count = 0;
+		for (int i = 0; i < values.length; i++) {
+			if (values[i] == null || values[i].matches(spaceRegex))
+				continue; //skip if empty
+			count++;
+			Yaml.log(level, "WRITING VALUE: " + values[i]);
+			out.print(values[i] + "'");
+			if (count != infos) //not last
+				out.print(", '");
 		}
+		out.print("]\n");
 	}
 }

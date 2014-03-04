@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -31,28 +32,29 @@ public class AutogenProcessor extends AbstractProcessor {
 	private static final String hasSpace = "(?s)(.*)(\\s+)(.*)";
 	private static final String isSpace = "(\\s*)";
 	
-	private boolean done = false;
+	//private boolean done = false;
 	
 	@Override
 	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 		
-		if (done) return true;
-		done = true; //only do this once
+		//if (done) return true;
+		//done = true; //only do this once
 		
-		// GENERAL //
 		try {
-			
-			
+			// SETUP //
 			Filer filer = super.processingEnv.getFiler();
+			
+			Yaml.LOG = true;
+			Scanner prelog = new Scanner(filer.getResource(StandardLocation.SOURCE_OUTPUT, "", "../autogen.aglog").openInputStream());
+			PrintStream log = new PrintStream(filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "../autogen.aglog").openOutputStream());
+			while (prelog.hasNextLine())
+				log.println(prelog.nextLine());
+			prelog.close();
+			Yaml.logFile(log);
+			
 			FileObject obj = filer.getResource(StandardLocation.SOURCE_OUTPUT, "", "../plugin.yml");
-			Yaml yaml = new Yaml();
 			boolean write = true;
-			
-			//try { 
-				yaml = new Yaml(obj.openInputStream()); 
-			//	}
-			//catch (Exception e) { write = false; }
-			
+			Yaml yaml = new Yaml(obj.openInputStream()); 
 			YamlNode root = yaml.getRootNode();
 			
 			
@@ -63,8 +65,8 @@ public class AutogenProcessor extends AbstractProcessor {
 			Elements elementUtil = super.processingEnv.getElementUtils();
 			
 			
+			// GENERAL //
 			Set<? extends Element> plugins = roundEnv.getElementsAnnotatedWith(PluginInfo.class);
-			
 			for (Element element : plugins) {
 				if (element instanceof TypeElement) {
 					TypeElement typeElement = (TypeElement) element;
@@ -206,6 +208,8 @@ public class AutogenProcessor extends AbstractProcessor {
 				if (write) {
 					FileObject fileObj = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "../plugin.yml");
 					yaml.save(new PrintStream(fileObj.openOutputStream()));
+					
+					log.close(); //save log
 				}
 			} catch (IOException ioe) {
 				msg.printMessage(Diagnostic.Kind.WARNING, "Autogen failed to access to plugin.yml: " + ioe.getLocalizedMessage());
@@ -213,7 +217,7 @@ public class AutogenProcessor extends AbstractProcessor {
 		} catch (Exception e) { //pokemon catch
 			try {
 				Filer filer = super.processingEnv.getFiler();
-				FileObject fileObj = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "../autogen-errors.log");
+				FileObject fileObj = filer.createResource(StandardLocation.SOURCE_OUTPUT, "", "../autogen-errors.aglog");
 				PrintWriter writer = new PrintWriter(fileObj.openOutputStream()); //open the generated file
 				writer.println(e); //write the strings
 				writer.println(e.getLocalizedMessage());
@@ -223,7 +227,6 @@ public class AutogenProcessor extends AbstractProcessor {
 				writer.close();
 			} catch (IOException ioe) { } //we're sunk
 		}
-		
 		return true;
 	}
 }
