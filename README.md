@@ -15,6 +15,7 @@ Autogen uses three different types of annotations:
 * `@PluginInfo`
 * `@CommandInfo`
 * `@PermissionInfo`
+
 Each one of these annotations represents an element of the plugin.yml file. Each annotation contains fields for it's respective yaml values. The list of plugin yaml values is avaliable [here](http://wiki.bukkit.org/Plugin_YAML). In the annotations, hypens are replaced with underscores.
 
 ####@PluginInfo
