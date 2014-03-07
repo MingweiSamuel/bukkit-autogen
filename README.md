@@ -22,7 +22,7 @@ Each one of these annotations represents an element of the plugin.yml file. Each
 Classes using the `@PluginInfo` annotation must implement the `Plugin` interface.
 
 ####@CommandInfo
-Classes using the `@CommandInfo` annotation must implement the `CommandExecutor` interface.
+Classes using the `@CommandInfo` annotation must implement the `CommandExecutor` interface. To use `AutoRegister.register()`, each CommandExecutor must have a visible parameterless constructor.
 
 ####@PermissionInfo
 Any class can use the `@PermissionInfo` annotation, however, for organizational purposes it may be best to use them with respective `CommandExecutor` classes.
@@ -46,3 +46,17 @@ public class FlagrateExecutor implements CommandExecutor {
 }
 ```
 In this example command executor, a command is defined as _flagrate_. Additional command parameters are defined as well. Permission information is defined as well.
+```java
+@PluginInfo(
+	name = "Inferno",
+	main = "com.captaininflamo.bukkit.inferno.Inferno",
+	version = "0.1.2",
+)
+public final class Inferno extends JavaPlugin implements Plugin {
+	
+	public Inferno() {
+		AutoRegister.register(this);
+	}
+}
+```
+
