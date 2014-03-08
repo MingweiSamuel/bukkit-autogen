@@ -30,33 +30,41 @@ Any class can use the `@PermissionInfo` annotation, however, for organizational 
 ###Example Usage
 ```java
 @CommandInfo(
-		command = "flagrate",
-		description = "Set yourself on fire.",
-		permission = "inferno.flagrate",
-		aliases = {"combust_me", "combustMe"}.
-		usage = "Syntax error! Simply type /&lt;command&gt; to ignite yourself"
-		)
+	command = "flagrate",
+	description = "Set yourself on fire.",
+	permission = "inferno.flagrate",
+	aliases = {"combust_me", "combustMe"}.
+	usage = "Syntax error! Simply type /&lt;command&gt; to ignite yourself"
+	)
 @PermissionInfo(
-		permission = "inferno.flagrate",
-		description = "Allows you to ignite yourself",
-		default_value = "true"
-		)
+	permission = "inferno.flagrate",
+	description = "Allows you to ignite yourself",
+	default_value = "true"
+	)
 public class FlagrateExecutor implements CommandExecutor {
   ...
 }
 ```
-In this example command executor, a command is defined as _flagrate_. Additional command parameters are defined as well. Permission information is defined as well.
+In this example command executor, a command is defined as _flagrate_. Additional command parameters are defined, as well as permission information.
 ```java
 @PluginInfo(
 	name = "Inferno",
 	main = "com.captaininflamo.bukkit.inferno.Inferno",
-	version = "0.1.2",
+	description = "This plugin is so 31337. You can set yourself on fire",
+	version = "1.4.1",
+	author: "CaptainInferno",
+	authors: {"Cogito", "verrier", "EvilSeph"},
+	depend: {"NewFire", "FlameWire"}
+	
 )
 public final class Inferno extends JavaPlugin implements Plugin {
 	
 	public Inferno() {
 		AutoRegister.register(this);
+		...
 	}
+	...
 }
 ```
+Here is the JavaPlugin class. It defines many properties of the plugin YAML, but the only required attributes are _name_, _version_, and _main_.
 
