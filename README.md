@@ -60,11 +60,11 @@ In this example command executor, a command is defined as _flagrate_. Additional
 public final class Inferno extends JavaPlugin implements Plugin {
 	
 	public Inferno() {
-		AutoRegister.register(this);
+		AutoRegister.register(this); //automatically registers all commands
 		...
 	}
 	...
 }
 ```
-Here is the JavaPlugin class. It defines many properties of the plugin YAML, but the only required attributes are _name_, _version_, and _main_.
+Here is the JavaPlugin class. It defines many properties of the plugin YAML, but the only required attributes are _name_, _version_, and _main_. `AutoRegister.register(this)` automatically registers all the commands.
 
